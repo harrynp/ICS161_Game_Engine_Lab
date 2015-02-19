@@ -53,6 +53,11 @@ int main(int argc, char **argv){
 		return 1;
 	}
 
+	if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0)
+	{
+		logSDLError(std::cout, "Mix_Init");
+	}
+
 	SDL_Window *window = SDL_CreateWindow("Sprite Demo", 800, 100, SCREEN_WIDTH,
 		SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
 	if (window == nullptr){
@@ -80,7 +85,10 @@ int main(int argc, char **argv){
 		return 1;
 	}
 
-	Sprite* spriteBG = new Sprite(SCREEN_WIDTH, SCREEN_HEIGHT, renderer);
+	//Music from soundimage.org
+	std::string musicPath = resPath + "The-Castle-Beyond-the-Forest.mp3";
+	Mix_Music* bgmusic = Mix_LoadMUS(musicPath.c_str());
+	Sprite* spriteBG = new Sprite(SCREEN_WIDTH, SCREEN_HEIGHT, renderer, bgmusic);
 	spriteBG->setPos(0, 0);
 	int bgFrame = spriteBG->makeFrame(background, 470, 450);
 
@@ -93,6 +101,9 @@ int main(int argc, char **argv){
 		return 1;
 	}
 
+	//Swing sound effect from OpenGameArt.org
+	std::string knifePath = resPath + "drawKnife1.ogg";
+	Mix_Chunk* knifese = Mix_LoadWAV(knifePath.c_str());
 
 	Sprite* sprite1 = new Sprite(32, 36, renderer);
 	sprite1->addFrameToSequence("walk up", sprite1->makeFrame(spritesheet, 0, 0));
@@ -110,7 +121,7 @@ int main(int argc, char **argv){
 	sprite1->addFrameToSequence("walk left", sprite1->makeFrame(spritesheet, 0, 108));
 	sprite1->addFrameToSequence("walk left", sprite1->makeFrame(spritesheet, 32, 108));
 	sprite1->addFrameToSequence("walk left", sprite1->makeFrame(spritesheet, 64, 108));
-
+	sprite1->addFrameToSequence("knifese", sprite1->makeFrame(spritesheet, 0, 72, knifese));
 
 
 	int x = SCREEN_WIDTH / 2;
@@ -120,6 +131,7 @@ int main(int argc, char **argv){
 	SDL_Event e;
 	bool quit = false;
 	std::string spriteDirection = "walk right";
+	std::string prevDirection;
 	while (!quit){
 		while (SDL_PollEvent(&e)){
 			if (e.type == SDL_QUIT){
@@ -128,23 +140,32 @@ int main(int argc, char **argv){
 			if (e.type == SDL_KEYDOWN){
 				if (e.key.keysym.sym == SDLK_RIGHT)
 				{
-					sprite1->movex(1);
+					sprite1->getX() < SCREEN_WIDTH - 32 ? sprite1->movex(5) : nullptr;
+					//spriteBG->movex(-1);
 					spriteDirection = "walk right";
 				}
 				else if (e.key.keysym.sym == SDLK_LEFT)
 				{
-					sprite1->movex(-1);
+					sprite1->getX() > 0 ? sprite1->movex(-5) : nullptr;
+					//spriteBG->movex(1);
 					spriteDirection = "walk left";
 				}
 				else if (e.key.keysym.sym == SDLK_UP)
 				{
-					sprite1->movey(-1);
+					sprite1->getY() > 0 ? sprite1->movey(-5) : nullptr;
+					//spriteBG->movey(1);
 					spriteDirection = "walk up";
 				}
 				else if (e.key.keysym.sym == SDLK_DOWN)
 				{
-					sprite1->movey(1);
+					sprite1->getY() < SCREEN_HEIGHT - 36 ? sprite1->movey(5) : nullptr;
+					//spriteBG->movey(-1);
 					spriteDirection = "walk down";
+				}
+				else if (e.key.keysym.sym == SDLK_SPACE)
+				{
+					prevDirection = spriteDirection;
+					spriteDirection = "knifese";
 				}
 			}
 		}
@@ -153,6 +174,9 @@ int main(int argc, char **argv){
 		spriteBG->show(bgFrame);
 		sprite1->show(spriteDirection.c_str());
 		SDL_RenderPresent(renderer);
+		if (spriteDirection == "knifese"){
+			spriteDirection = prevDirection;
+		}
 	}
 
 	cleanup(background, spritesheet, renderer, window);
